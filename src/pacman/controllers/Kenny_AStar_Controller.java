@@ -75,6 +75,7 @@ public class Kenny_AStar_Controller extends Controller<Constants.MOVE> {
         openList.add(start);
         
         //While we have unvisited nodes...
+        visitorLoop:
         while (!openList.isEmpty()) {
 
             //make sure we have time left, or break 
@@ -87,6 +88,7 @@ public class Kenny_AStar_Controller extends Controller<Constants.MOVE> {
             q = openList.remove();
             
             //for each successor of the current node
+            successorLoop:
             for (MOVE m : q.gameState.getPossibleMoves(q.gameState.getPacmanCurrentNodeIndex())) {
                 gameCopy = q.gameState.copy();
                 gameCopy.advanceGame(m, ghosts.getMove(gameCopy, 0));
@@ -103,11 +105,18 @@ public class Kenny_AStar_Controller extends Controller<Constants.MOVE> {
                 child.h = getHeuristic(gameCopy);
                 child.f = child.g + child.h;
                 child.parent = q;
-                        
-//                if (child.h == 0) {
-//                    break;
-//                    //we've eaten all the food
-//                }
+                
+
+                //if heuristic is 0, goal is achieved
+                if (child.h == 0) {
+                    openList.add(child);
+//                    System.out.println("we found a path to eat last pellet");
+                    break visitorLoop;
+                }
+//                GameView.addLines(game, 
+//                            Color.yellow, 
+//                            q.gameState.getPacmanCurrentNodeIndex(), 
+//                            gameCopy.getPacmanCurrentNodeIndex());
                 
                 // Check if the current pacmanlocation has already been visited
                 // at a cheaper cost than the current child.
@@ -118,6 +127,9 @@ public class Kenny_AStar_Controller extends Controller<Constants.MOVE> {
                 if (!betterPacManNodeExists(child, openList) && !betterPacManNodeExists(child, closedList)){
                     openList.add(child);
                 }
+//                else{
+//                    GameView.addPoints(game, Color.BLUE, child.gameState.getPacmanCurrentNodeIndex());
+//                }
             }
             
             // Add the current node to the list of visited nodes so we won't
@@ -135,7 +147,7 @@ public class Kenny_AStar_Controller extends Controller<Constants.MOVE> {
             tempnode = tempnode.parent;
             
             //I occasionally get an index out of range here, seems to be a bug with the pacman code
-            //GameView.addPoints(game, Color.GREEN, tempnode.gameState.getPacmanCurrentNodeIndex());
+//            GameView.addPoints(game, Color.GREEN, tempnode.gameState.getPacmanCurrentNodeIndex());
         }
         return move;
     }
@@ -156,9 +168,30 @@ public class Kenny_AStar_Controller extends Controller<Constants.MOVE> {
     //return the expected cost to get to a state where all food is eaten
     //for now, I just use the number of pills left.
     public int getHeuristic(Game game) {
-//        if (game.wasPacManEaten()){
-//            return -1;
-//        }
-        return game.getNumberOfActivePills()*10;
+        //initially my heuristic was just the number of active pills
+//        return game.getNumberOfActivePills();
+        
+        //I found multiplying by 10 worked better
+//        return game.getNumberOfActivePills()*10;
+        
+        //and 100 worked even better
+        return game.getNumberOfActivePills()*100;
+        
+        //attempt of a heuristic that is the distance to the closest food:
+//        int currentNode = game.getPacmanCurrentNodeIndex(); 
+//        int[] foods = game.getActivePillsIndices();
+//        int closestFood = game.getClosestNodeIndexFromNodeIndex(currentNode, foods, DM.PATH);
+//        int distanceToCloseFood = game.getShortestPathDistance(currentNode, closestFood);
+//        return distanceToCloseFood;
+
+            //attempt of a heuristic that combines number of food and distance to closest food:
+//        int currentNode = game.getPacmanCurrentNodeIndex(); 
+//        int[] foods = game.getActivePillsIndices();
+//        int closestFood = game.getClosestNodeIndexFromNodeIndex(currentNode, foods, DM.PATH);
+//        int distanceToCloseFood = game.getShortestPathDistance(currentNode, closestFood);
+//        int[] pathToCloseFood = game.getShortestPath(currentNode, closestFood, game.getPacmanLastMoveMade());
+//        
+//        return distanceToCloseFood + (10*game.getNumberOfActivePills());
+        
     }
 }
