@@ -13,6 +13,7 @@ import pacman.controllers.BFS_Controller;
 import pacman.controllers.Controller;
 import pacman.controllers.HumanController;
 import pacman.controllers.Kenny_DFS_Controller;
+import pacman.controllers.Kenny_AStar_Controller;
 import pacman.controllers.KeyBoardInput;
 import pacman.controllers.examples.AggressiveGhosts;
 import pacman.controllers.examples.Legacy;
@@ -65,8 +66,8 @@ public class Executor
 		boolean visual=true;
 //		exec.runGameTimed(new NearestPillPacMan(),new AggressiveGhosts(),visual);
 
-//                exec.runGame(new Kenny_DFS_Controller(),new StarterGhosts(),visual,100);
-                exec.runGameTimed(new Kenny_DFS_Controller(),new StarterGhosts(),visual);
+//                exec.runGame(new Kenny_AStar_Controller(),new StarterGhosts(),visual,100);
+                exec.runGameTimed(new Kenny_AStar_Controller(),new StarterGhosts(),visual);
 
     //		exec.runGameTimed(new StarterPacMan(),new StarterGhosts(),visual);
 //		exec.runGameTimed(new HumanController(new KeyBoardInput()),new StarterGhosts(),visual);	
@@ -189,6 +190,9 @@ public class Executor
 			{
 				e.printStackTrace();
 			}
+                        if(!pacManController.hasComputed()){
+                            System.out.println("We timed out.");
+                        }
 
 	        game.advanceGame(pacManController.getMove(),ghostController.getMove());	   
 	        
