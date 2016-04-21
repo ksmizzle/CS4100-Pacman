@@ -240,6 +240,70 @@ public final class Game
 		
 		return sb.toString();
 	}
+        
+        
+        	/**
+	 * Gets the game state as a string: all variables are written to a string in a pre-determined
+	 * order. The string may later be used to recreate a game state using the setGameState() method.
+	 *
+	 * Variables not included: enableGlobalReversals
+         * 
+	 *Removed:
+         *  total time
+         *  current level time
+         *  score
+         *  pacman last move
+         *  number of lives remaining
+         * 
+         *  ghost:
+         *      edibletime + (added if they are edible)
+         *      lairTime
+         *      lastmove made
+         *  time of last reversal
+    *      pill was eaten
+    *      power pill was eaten
+         * 
+	 * @return The game state as a string
+	 */
+	public String getQStateGameState()
+	{
+            
+		StringBuilder sb=new StringBuilder();
+
+//                sb.append("test");
+		sb.append(mazeIndex+","+levelCount+","+pacman.currentNodeIndex+",");
+
+		for(Ghost ghost : ghosts.values())
+			sb.append(ghost.currentNodeIndex+","+((ghost.edibleTime>0)?0:1)+",");
+
+		for(int i=0;i<currentMaze.pillIndices.length;i++)
+			if(pills.get(i))
+				sb.append("1");
+			else
+				sb.append("0");
+
+		sb.append(",");
+		
+		for(int i=0;i<currentMaze.powerPillIndices.length;i++)
+			if(powerPills.get(i))
+				sb.append("1");
+			else
+				sb.append("0");
+		
+		sb.append(",");		
+			
+		
+		
+//		for(GHOST ghost : GHOST.values())
+//		{
+//			sb.append(ghostsEaten.get(ghost));
+//			sb.append(",");
+//		}
+		
+		
+		
+		return sb.toString();
+	}
 	
 	/**
 	 * Sets the game state from a string: the inverse of getGameState(). It reconstructs

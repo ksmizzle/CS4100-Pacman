@@ -16,6 +16,7 @@ import pacman.controllers.Kenny_DFS_Controller;
 import pacman.controllers.Kenny_AStar_Controller;
 import pacman.controllers.Kenny_Evolutionary_Controller;
 import pacman.controllers.KeyBoardInput;
+import pacman.controllers.QLearningController;
 import pacman.controllers.examples.AggressiveGhosts;
 import pacman.controllers.examples.Legacy;
 import pacman.controllers.examples.Legacy2TheReckoning;
@@ -49,46 +50,21 @@ public class Executor
 	{
 		Executor exec=new Executor();
 
-		/*
-		//run multiple games in batch mode - good for testing.
-		int numTrials=10;
-		exec.runExperiment(new RandomPacMan(),new RandomGhosts(),numTrials);
-		 */
-		
-		/*
-		//run a game in synchronous mode: game waits until controllers respond.
-		int delay=5;
 		boolean visual=true;
-		exec.runGame(new RandomPacMan(),new RandomGhosts(),visual,delay);
-  		 */
-		
-		///*
-		//run the game in asynchronous mode.
-		boolean visual=true;
-//		exec.runGameTimed(new NearestPillPacMan(),new AggressiveGhosts(),visual);
 
-                exec.runGameTimed(new Kenny_Evolutionary_Controller(),new StarterGhosts(),visual);
-//                exec.runGameTimed(new Kenny_AStar_Controller(),new StarterGhosts(),visual);
 
-    //		exec.runGameTimed(new StarterPacMan(),new StarterGhosts(),visual);
-//		exec.runGameTimed(new HumanController(new KeyBoardInput()),new StarterGhosts(),visual);	
-		//*/
-		
-		/*
-		//run the game in asynchronous mode but advance as soon as both controllers are ready  - this is the mode of the competition.
-		//time limit of DELAY ms still applies.
-		boolean visual=true;
-		boolean fixedTime=false;
-		exec.runGameTimedSpeedOptimised(new RandomPacMan(),new RandomGhosts(),fixedTime,visual);
-		*/
-		
-		/*
-		//run game in asynchronous mode and record it to file for replay at a later stage.
-		boolean visual=true;
-		String fileName="replay.txt";
-		exec.runGameTimedRecorded(new HumanController(new KeyBoardInput()),new RandomGhosts(),visual,fileName);
-		//exec.replayGame(fileName,visual);
-		 */
+                
+                 String pathToData= "C:/Users/Kenny/Desktop/AI/trainingData.txt";
+                 QLearningController testController = new QLearningController( pathToData);
+
+                for(int i = 0; i < 10; i++){
+                    exec.runExperiment(testController, new StarterGhosts(), 100);
+                    System.out.println("trial # " + i*100);
+                    testController.writeoutdata();
+                }
+
+                exec.runGameTimed(testController,new StarterGhosts(),visual);
+                testController.writeoutdata();
 	}
 	
     /**
@@ -110,21 +86,37 @@ public class Executor
 		
 		for(int i=0;i<trials;i++)
 		{
+                        if(i % 100 == 0){
+//                            System.out.println("trial # " + i);
+                        }
 			game=new Game(rnd.nextLong());
-			
+			int numMoves = 0;
 			while(!game.gameOver())
 			{
+//                            numMoves++;
 		        game.advanceGame(pacManController.getMove(game.copy(),System.currentTimeMillis()+DELAY),
 		        		ghostController.getMove(game.copy(),System.currentTimeMillis()+DELAY));
 			}
+//                        System.out.println("numMoves: " + numMoves);
 			
 			avgScore+=game.getScore();
-			System.out.println(i+"\t"+game.getScore());
+//			System.out.println(i+"\t"+game.getScore());
 		}
 		
 		System.out.println(avgScore/trials);
     }
 	
+    public void test(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,Game game)
+    {
+        if(!game.gameOver()){
+            game.advanceGame(pacManController.getMove(game.copy(),System.currentTimeMillis()+DELAY),
+		        		ghostController.getMove(game.copy(),System.currentTimeMillis()+DELAY));
+
+            test(pacManController, ghostController, game);
+        }
+//        System.out.println(game.getScore());
+        
+    }
 	/**
 	 * Run a game in asynchronous mode: the game waits until a move is returned. In order to slow thing down in case
 	 * the controllers return very quickly, a time limit can be used. If fasted gameplay is required, this delay
