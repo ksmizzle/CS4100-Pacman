@@ -25,7 +25,7 @@ import pacman.game.GameView;
 //states as it goes. 
 //One issue I found with the pacman problem was that the shear number of states
 //is fairly prohibitive.
-public class QLearningController extends Controller<MOVE> {
+public class Kenny_QLearning_Controller extends Controller<MOVE> {
     
     //Store our state changes and corresponding Qvalues in a map
     Map<String,Double> values;
@@ -36,12 +36,12 @@ public class QLearningController extends Controller<MOVE> {
     private double alpha = 0.2; //learning rate
     
     String datapath; //path to the text file where we store training data 
-    private boolean training; //are we training right now
+   
     
     Random rnd; //random used for exploration
     
-    public QLearningController(String pathToTrainingData){
-        this.training = training;
+    public Kenny_QLearning_Controller(String pathToTrainingData){
+        
         this.rnd=new Random(System.currentTimeMillis());
         this.values = new HashMap<String, Double>();
         
@@ -59,7 +59,7 @@ public class QLearningController extends Controller<MOVE> {
         {
             System.out.println("Could not read data!");	
         } catch (ClassNotFoundException ex) {
-            Logger.getLogger(QLearningController.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Kenny_QLearning_Controller.class.getName()).log(Level.SEVERE, null, ex);
         }        
     }
     
@@ -157,10 +157,11 @@ public class QLearningController extends Controller<MOVE> {
         if(game.wasPacManEaten()){
             return -100;
         }
-        double initialscore = game.getScore();
-        Game gameCopy = game.copy();
-        gameCopy.advanceGame(move, ghosts.getMove(gameCopy,0));
-        return gameCopy.getScore() - initialscore;
+//        double initialscore = game.getScore();
+//        Game gameCopy = game.copy();
+//        gameCopy.advanceGame(move, ghosts.getMove(gameCopy,0));
+//        return gameCopy.getScore() - initialscore;
+        return 1;
     }
     
     

@@ -24,8 +24,8 @@ import pacman.game.GameView;
 //Note, while the algorithm used is sound, it does not work particularly for
 //this application since it can not check whether or not the moves stored in a
 //solution are possible to make (pacman could wind up running into a wall)
-public class Kenny_Evolutionary_Controller  extends Controller<MOVE>{
-    
+public class Kenny_Genetic_Controller  extends Controller<MOVE>{
+        
     //my solution class, it stores a move path and the score it results in.
     private class Solution {
         MOVE[] movepath;
@@ -139,8 +139,8 @@ public class Kenny_Evolutionary_Controller  extends Controller<MOVE>{
         }
         
         //now that we've run out of time, return the best solution from the last gen
-        System.out.println("solution after " + generationNumber + " generations: ");
-        System.out.println(solutionPopulation.peek());
+//        System.out.println("solution after " + generationNumber + " generations: ");
+//        System.out.println(solutionPopulation.peek());
         paintSolution(solutionPopulation.peek(), Color.RED);
         return solutionPopulation.poll().movepath[0];
     }
