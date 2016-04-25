@@ -276,21 +276,21 @@ public final class Game
 		for(Ghost ghost : ghosts.values())
 			sb.append(ghost.currentNodeIndex+","+((ghost.edibleTime>0)?0:1)+",");
 
-		for(int i=0;i<currentMaze.pillIndices.length;i++)
-			if(pills.get(i))
-				sb.append("1");
-			else
-				sb.append("0");
+//		for(int i=0;i<currentMaze.pillIndices.length;i++)
+//			if(pills.get(i))
+//				sb.append("1");
+//			else
+//				sb.append("0");
 
-		sb.append(",");
-		
-		for(int i=0;i<currentMaze.powerPillIndices.length;i++)
-			if(powerPills.get(i))
-				sb.append("1");
-			else
-				sb.append("0");
-		
-		sb.append(",");		
+//		sb.append(",");
+//		
+//		for(int i=0;i<currentMaze.powerPillIndices.length;i++)
+//			if(powerPills.get(i))
+//				sb.append("1");
+//			else
+//				sb.append("0");
+//		
+//		sb.append(",");		
 			
 		
 		
@@ -1189,6 +1189,22 @@ public final class Game
 			
 		return indices;
 	}
+        
+          public int[] getAllIndices()
+	{
+                    int numIndices = currentMaze.graph.length;
+                    
+                    Node[] nodes = currentMaze.graph;
+                    
+		int[] indices=new int[numIndices];
+		
+		int index=0;
+		
+		for(int i=0;i<numIndices;i++)
+                            indices[i]=currentMaze.graph[i].nodeIndex;		
+			
+		return indices;
+	}
 	
 	/**
 	 * returns the indices of all active power pills in the mazes[gs.curMaze]
@@ -1420,6 +1436,37 @@ public final class Game
 			double distance=0;
 			
 			distance=getDistance(targetNodeIndices[i],fromNodeIndex,distanceMeasure);
+					
+			if(distance<minDistance)
+			{
+				minDistance=distance;
+				target=targetNodeIndices[i];	
+			}
+		}
+		
+		return target;
+	}
+        
+        
+        
+        /**
+	 * Gets the closest node index from node index.
+	 *
+	 * @param fromNodeIndex the from node index
+	 * @param targetNodeIndices the target node indices
+	 * @param distanceMeasure the distance measure
+	 * @return the closest node index from node index
+	 */
+	public int getClosestNodeIndexFromNodeIndex(int fromNodeIndex,int[] targetNodeIndices,MOVE lastMove, DM distanceMeasure)
+	{
+		double minDistance=Integer.MAX_VALUE;
+		int target=-1;
+		
+		for(int i=0;i<targetNodeIndices.length;i++)
+		{				
+			double distance=0;
+			
+			distance=getDistance(targetNodeIndices[i],fromNodeIndex, lastMove, distanceMeasure);
 					
 			if(distance<minDistance)
 			{
