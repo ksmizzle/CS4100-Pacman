@@ -7,16 +7,23 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.PriorityQueue;
 import java.util.Random;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import pacman.controllers.BFS_Controller;
 import pacman.controllers.Controller;
 import pacman.controllers.HumanController;
 import pacman.controllers.Kenny_DFS_Controller;
 import pacman.controllers.Kenny_AStar_Controller;
-import pacman.controllers.Kenny_Evolutionary_Controller;
+import pacman.controllers.Kenny_Genetic_Controller;
 import pacman.controllers.KeyBoardInput;
-import pacman.controllers.QLearningController;
+import pacman.controllers.Kenny_QLearning_Controller;
+import pacman.controllers.Kenny_NeuralNetwork_Controller;
+import pacman.controllers.NeuralNetwork;
+import pacman.controllers.NeuralNetwork.NeuralNetworkComparator;
 import pacman.controllers.examples.AggressiveGhosts;
 import pacman.controllers.examples.Legacy;
 import pacman.controllers.examples.Legacy2TheReckoning;
@@ -46,27 +53,111 @@ public class Executor
 	 *
 	 * @param args the command line arguments
 	 */
-	public static void main(String[] args)
-	{
-		Executor exec=new Executor();
+    static int connectionUid = 0;
+    static int nodeUid = 0;
+    static int networkUid = 0;
+    public static void main(String[] args)
+    {
+        Executor exec=new Executor();
 
-		boolean visual=true;
+        boolean visual=true;
+        
+        String algoToRun = "NeuralNetwork";
+        
+        
+        switch(algoToRun){
+            case "DFS":
+                exec.runGameTimed(new Kenny_DFS_Controller(), new StarterGhosts(),visual);
+    //            exec.runExperiment(new Kenny_DFS_Controller(), new StarterGhosts(), 10);
+                break;
 
+            case "AStar":
+                exec.runGameTimed(new Kenny_AStar_Controller(), new StarterGhosts(),visual);
+    //            exec.runExperiment(new Kenny_AStar_Controller(), new StarterGhosts(), 10);            
+                break;
 
-                
-                 String pathToData= "C:/Users/Kenny/Desktop/AI/trainingData.txt";
-                 QLearningController testController = new QLearningController( pathToData);
+            case "Genetic":
+                exec.runGameTimed(new Kenny_Genetic_Controller(), new StarterGhosts(),visual);
+    //            exec.runExperiment(new Kenny_Genetic_Controller(), new StarterGhosts(), 10);  
 
-                for(int i = 0; i < 10; i++){
-                    exec.runExperiment(testController, new StarterGhosts(), 100);
-                    System.out.println("trial # " + i*100);
-                    testController.writeoutdata();
+                break;
+
+            case "QLearning":
+
+                //NOTE: for qlearning to work, the path needs to be updated, approx 100 MB of training data will be created
+                String pathToData= "C:/Users/Kenny/Desktop/AI/trainingData.txt";
+                     Kenny_QLearning_Controller qLearningController = new Kenny_QLearning_Controller(pathToData);
+
+                    for(int i = 0; i < 100; i++){
+                        exec.runExperiment(qLearningController, new StarterGhosts(), 100);
+                        System.out.println("trial # " + i*100);
+                        qLearningController.writeoutdata();
+                    }
+
+                    exec.runExperiment(qLearningController, new StarterGhosts(), 10);
+                    exec.runGameTimed(qLearningController,new StarterGhosts(),visual);
+                    qLearningController.writeoutdata();
+
+                break;
+
+            case "NeuralNetwork":
+                Comparator<NeuralNetwork> comparator = new NeuralNetwork.NeuralNetworkComparator();
+                TreeSet<NeuralNetwork> population =    new TreeSet<NeuralNetwork>(comparator);
+                NeuralNetwork neuralNetwork = new NeuralNetwork();
+                for (int i = 0; i < 10; i++){
+                    NeuralNetwork nn = new NeuralNetwork(neuralNetwork);
+                    nn.randomMutation(0.2, 0, 1);
+                    System.out.println("adding a new item " + population.add(nn));
                 }
+                System.out.println("sorted set size: " + population.size());
 
-                exec.runGameTimed(testController,new StarterGhosts(),visual);
-                testController.writeoutdata();
-	}
-	
+
+                for(int i = 0; i < 500; i ++)
+                {
+                    System.out.println("best fitness: " + population.last().getFitness());
+                    NeuralNetwork worstNet = population.pollFirst();
+                    System.out.println("on test: " + i + ".  Testing node number: "+ worstNet.getUid());
+                    System.out.println(worstNet);
+                    double fitness = exec.runExperiment(new Kenny_NeuralNetwork_Controller(worstNet), new StarterGhosts(), 3);
+                    System.out.println("result fitness: " + fitness);
+                    worstNet.setFitness(fitness);
+                    population.add(worstNet);//might not be worst anymore
+                    worstNet = population.pollFirst();
+                    System.out.println("removing weak nn number " + worstNet.getUid() + "  with fitness " + worstNet.getFitness());
+                    NeuralNetwork newNet = new NeuralNetwork(population.last());
+                    newNet.randomMutation(0.1, 0.1, 0.5);
+                    population.add(newNet);
+
+                }
+                System.out.println("best neuralnetwork score: " + population.last().getFitness());
+                System.out.println(population.last());
+                break;
+
+            default:
+                System.out.println("set algoToRun to one of the following [DFS, AStar, Genetic, QLearning, NeuralNetwork]");
+        }
+
+    }
+        
+    
+    //These are used to evolve the neural networks and need to be global
+    public static int getNextConnectionUid(){
+        connectionUid ++;
+        return connectionUid;
+    }
+    
+    public static int getNextNodeUid(){
+        nodeUid ++;
+        return nodeUid;
+    }
+    public static int getNextNetworkUid(){
+        networkUid ++;
+        return networkUid;
+    }
+   
+        
+        
+        
     /**
      * For running multiple games without visuals. This is useful to get a good idea of how well a controller plays
      * against a chosen opponent: the random nature of the game means that performance can vary from game to game. 
@@ -77,7 +168,7 @@ public class Executor
      * @param ghostController The Ghosts controller
      * @param trials The number of trials to be executed
      */
-    public void runExperiment(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,int trials)
+    public double runExperiment(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,int trials)
     {
     	double avgScore=0;
     	
@@ -96,14 +187,16 @@ public class Executor
 //                            numMoves++;
 		        game.advanceGame(pacManController.getMove(game.copy(),System.currentTimeMillis()+DELAY),
 		        		ghostController.getMove(game.copy(),System.currentTimeMillis()+DELAY));
+                    
 			}
 //                        System.out.println("numMoves: " + numMoves);
 			
 			avgScore+=game.getScore();
-//			System.out.println(i+"\t"+game.getScore());
+			System.out.println(i+"\t"+game.getScore());
 		}
 		
 		System.out.println(avgScore/trials);
+          return avgScore/trials;
     }
 	
     public void test(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,Game game)
@@ -183,9 +276,9 @@ public class Executor
 			{
 				e.printStackTrace();
 			}
-                        if(!pacManController.hasComputed()){
-                            System.out.println("We timed out.");
-                        }
+                if(!pacManController.hasComputed()){
+                    System.out.println("We timed out.");
+                }
 
 	        game.advanceGame(pacManController.getMove(),ghostController.getMove());	   
 	        
