@@ -7,6 +7,7 @@ package pacman.controllers;
 
 import static java.lang.Math.exp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,7 @@ public class NeuralNetwork {
     private Random rnd;
     private double fitness = 0;
     private int networkUid;
+    Map<Integer,Neuron> nodeUidToNode;
 
     
     //initialize a 4 input, 1 output network
@@ -40,8 +42,11 @@ public class NeuralNetwork {
         connections = new ArrayList<>();
         outputNeuron = new OutputNeuron();
         networkUid = Executor.getNextNetworkUid();
+        nodeUidToNode = new HashMap<>();
+        nodeUidToNode.put(outputNeuron.getUid(), outputNeuron);
         for(int i = 0;i < 4; i++){
             InputNeuron inputNeuron = new InputNeuron(0.0);
+            nodeUidToNode.put(inputNeuron.getUid(), inputNeuron);
             Connection connection = new Connection(inputNeuron, outputNeuron);
             outputNeuron.connect(connection);
             connections.add(connection);
@@ -54,7 +59,7 @@ public class NeuralNetwork {
         hiddenNeurons = new ArrayList<>();
         inputNeurons = new ArrayList<>();
         connections = new ArrayList<>();
-        Map<Integer,Neuron> nodeUidToNode = new HashMap<>();
+        nodeUidToNode = new HashMap<>();
         rnd = new Random(System.currentTimeMillis());
         networkUid = Executor.getNextNetworkUid();
         for (Connection connection: original.connections){
@@ -169,12 +174,14 @@ public class NeuralNetwork {
     public void mutateAddNode(Connection connection){
         connection.disable();
         Neuron neuron = new Neuron();
+        
         //As per neat algo suggestion, the first connection has a weight of 1
         //This limits it's impact on the network until the weight evolves
         Connection newConnection1 = new Connection(connection.getInputNeuron(), neuron, 1);
         Connection newConnection2 = new Connection(neuron, connection.getOutputNeuron(), connection.getWeight());
 //        System.out.println("created a new node of type: " + neuron.getType());
         hiddenNeurons.add(neuron);
+        nodeUidToNode.put(neuron.getUid(), neuron);
         connections.add(newConnection1);
         connections.add(newConnection2);
     }
@@ -186,8 +193,14 @@ public class NeuralNetwork {
         }
         //TODO: prevent looping (node 1 > node 2 > node 3 > node 1)
         if(rnd.nextDouble() < connectionProb){
-            Neuron input = getRandomInput(-1);
-            Neuron output = getRandomOutput(input.getUid()); //this makes sure we don't connect a neuron to itself;
+            //any output neuron is valid
+            Neuron output = getRandomOutputNeuron(new ArrayList<Integer>());
+            //We want an input node downstream of out output to prevent looping
+            Neuron input = getRandomInputNeuron(getDownStreamNeuronUids(output));
+            if(input == null || output == null){
+                System.out.println("not enough neurons available to randomly select one");
+                return;
+            }
             mutateAddConnection(input, output);
         }
         if(rnd.nextDouble() < weightProb){
@@ -197,28 +210,54 @@ public class NeuralNetwork {
     
     //returns a random input or hidden neuron
     //exceptUid is the uid of a neuron we don't want
-    private Neuron getRandomInput(int exceptUid){
-        int options = hiddenNeurons.size() + inputNeurons.size();
-        Neuron randomInputNeuron = new Neuron();
-        do{
-            int index = rnd.nextInt(options);
-//            System.out.println("getting random input neuron " + index);
-            randomInputNeuron = (index < hiddenNeurons.size()? hiddenNeurons.get(index):inputNeurons.get(index - hiddenNeurons.size()));
-        }while(randomInputNeuron.getUid() == exceptUid);
-        return randomInputNeuron;
+    private Neuron getRandomInputNeuron(ArrayList<Integer> exceptUids){
+        int numNeurons = nodeUidToNode.size();
+        Integer[] allNeuronUids = (Integer[]) nodeUidToNode.keySet().toArray(new Integer[numNeurons]);
+        
+        ArrayList<Integer> options = new ArrayList<Integer>(Arrays.asList(allNeuronUids));
+        options.removeAll(exceptUids);
+        for (int i=0; i < options.size(); i++){
+            //don't use output nodes as an input
+            if(nodeUidToNode.get(options.get(i)).getType() == 2){
+                options.remove(i);
+            }
+        }
+        if (options.size() <= 0){
+            return null;
+        }
+        return nodeUidToNode.get(options.get(rnd.nextInt(options.size())));
     }
 
     //returns a random output or hidden neuron
     //exceptUid is the uid of a neuron we don't want
-    private Neuron getRandomOutput(int exceptUid){
-        int options = hiddenNeurons.size() + 1;
-        Neuron randomOutputNeuron = new Neuron();
-        do{
-            int index = rnd.nextInt(options);
-            randomOutputNeuron = (index < hiddenNeurons.size()? hiddenNeurons.get(index) : outputNeuron);
-//            System.out.println("getting random output neuron " + index + " uid: " + randomOutputNeuron.getUid() + ", we cannot return uid: " + exceptUid);
-        }while(randomOutputNeuron.getUid() == exceptUid);
-        return randomOutputNeuron;
+    
+    private Neuron getRandomOutputNeuron(ArrayList<Integer> exceptUids){
+        int numNeurons = nodeUidToNode.size();
+        Integer[] allNeuronUids = (Integer[]) nodeUidToNode.keySet().toArray(new Integer[numNeurons]);
+        
+        ArrayList<Integer> options = new ArrayList<Integer>(Arrays.asList(allNeuronUids));
+        options.removeAll(exceptUids);
+        for (int i=0; i < options.size(); i++){
+            //don't use input nodes as an input
+            if(nodeUidToNode.get(options.get(i)).getType() == 0){
+                options.remove(i);
+            }
+        }
+        if (options.size() <= 0){
+            return null;
+        }
+        return nodeUidToNode.get(options.get(rnd.nextInt(options.size())));
+    }
+    
+    //given a neuron, return an arraylist of uids of the neurons that feed into it
+    private ArrayList<Integer> getDownStreamNeuronUids(Neuron neuron){
+        ArrayList<Integer> uids = new ArrayList<>(); //= new int[neuron.getInputs().size()+1];
+        uids.add(neuron.getUid());
+        for(Connection conn: neuron.getInputs()){
+            Neuron inputNeuron = conn.getInputNeuron();
+            uids.addAll(getDownStreamNeuronUids(conn.getInputNeuron()));
+        }
+        return uids;
     }
 
     //return the genotype of the neural net
@@ -361,6 +400,9 @@ public class NeuralNetwork {
         }
         double sigmoidPrime(double x) {
               return x*(1-x);
+        }
+        public ArrayList<Connection> getInputs(){
+            return inputs;
         }
         public double fire(){
             double stimulus = 0;
